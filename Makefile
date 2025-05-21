@@ -25,7 +25,7 @@ SRC_DENOVO  = src/denovos/denovo_main.cpp src/error.cpp src/stringops.cpp src/ve
 
 CEPHES_ROOT=lib/cephes
 
-LIBS              = -L./ -lm -Llib/htslib/lib -lz -L$(CEPHES_ROOT)/ -llzma -lbz2 -lcurl -lcrypto -Llib/spoa/build/lib -lspoa
+LIBS              = -L./ -lm -Llib/htslib/lib -lhts -ldeflate -lz -L$(CEPHES_ROOT)/ -llzma -lbz2 -lcurl -lcrypto -Llib/spoa/build/lib -lspoa
 INCLUDE           = -Ilib -Ilib/htslib/include -Ilib/spoa/include
 CEPHES_LIB        = lib/cephes/libprob.a
 HTSLIB_LIB        = lib/htslib/lib/libhts.a
