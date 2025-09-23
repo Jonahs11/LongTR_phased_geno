@@ -19,7 +19,15 @@ LongTR relies on [spoa](https://github.com/rvaser/spoa) and [HTSLIB](https://git
 [zlib](https://zlib.net/)
 
 ## Installation
-To obtain LongTR, use:
+
+You can now install LongTR v1.2 through conda:
+
+```
+conda install -c conda-forge -c bioconda longtr
+```
+Special thanks to the users in this [thread](https://github.com/gymrek-lab/LongTR/issues/35) for help in setting this up.
+
+To compile LongTR from GitHub, use:
 
 	git clone git@github.com:gymrek-lab/LongTR.git
 
