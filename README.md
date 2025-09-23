@@ -25,7 +25,7 @@ You can now install LongTR v1.2 through conda:
 ```
 conda install -c conda-forge -c bioconda longtr
 ```
-Special thanks to the users in this [thread](https://github.com/gymrek-lab/LongTR/issues/35) for help in setting this up.
+Special thanks to the user in this [thread](https://github.com/gymrek-lab/LongTR/issues/35) for help in setting this up.
 
 To compile LongTR from GitHub, use:
 
