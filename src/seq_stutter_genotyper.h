@@ -49,6 +49,7 @@ class SeqStutterGenotyper : public Genotyper {
 
   // VCF containing STR and SNP genotypes for a reference panel
   VCF::VCFReader* ref_vcf_;
+  bool use_hp_tags_;
 
   // If this flag is set, the genotyper will reassemble the flanking sequencesAfter an initial round of genotyping
   bool reassemble_flanks_;
@@ -88,6 +89,10 @@ class SeqStutterGenotyper : public Genotyper {
   // Retrace the alignment for each read and store the associated pointers in the provided vector
   // Reads which were unaligned will have a NULL pointer
   void retrace_alignments(std::vector<AlignmentTrace*>& traced_alns);
+
+  // Returns 1/2/0 for reads assigned to HP1/HP2/unknown HP buckets.
+  // This is only active in phased-BAM mode where HP tags are used.
+  int get_phase_bucket(unsigned int read_index) const;
 
   // Identify additional candidate STR alleles using the sequences observed in reads with stutter artifacts
   void get_stutter_candidate_alleles(int block_index, std::ostream& logger, std::vector<std::string>& candidate_seqs);
@@ -148,7 +153,7 @@ class SeqStutterGenotyper : public Genotyper {
   SeqStutterGenotyper(const RegionGroup& region_group, bool haploid, bool reassemble_flanks,
 		      std::vector<Alignment>& alignments, std::vector< std::vector<double> >& log_p1, std::vector< std::vector<double> >& log_p2, std::vector<int>& n_p1s, std::vector<int>& n_p2s,
 		      const std::vector<std::string>& sample_names, const std::string& chrom_seq,
-		      std::vector<StutterModel*>& stutter_models, VCF::VCFReader* ref_vcf, std::ostream& logger, bool skip_assembly_, int INDEL_FLANK_LEN_, int SWITCH_OLD_ALIGN_LEN_, std::vector<float> alignment_parameters_): Genotyper(haploid, sample_names, log_p1, log_p2){
+		      std::vector<StutterModel*>& stutter_models, VCF::VCFReader* ref_vcf, bool use_hp_tags, std::ostream& logger, bool skip_assembly_, int INDEL_FLANK_LEN_, int SWITCH_OLD_ALIGN_LEN_, std::vector<float> alignment_parameters_): Genotyper(haploid, sample_names, log_p1, log_p2){
     region_group_          = region_group.copy();
     alns_                  = alignments;
     seed_positions_        = NULL;
@@ -169,6 +174,7 @@ class SeqStutterGenotyper : public Genotyper {
     INDEL_FLANK_LEN = INDEL_FLANK_LEN_;
     SWITCH_OLD_ALIGN_LEN = SWITCH_OLD_ALIGN_LEN_;
     ref_vcf_               = ref_vcf;
+    use_hp_tags_           = use_hp_tags;
     assert(num_reads_ == alns_.size());
     init(stutter_models, chrom_seq, logger);
     skip_assembly = skip_assembly_;

@@ -853,11 +853,20 @@ void SeqStutterGenotyper::get_stutter_candidate_alleles(int str_block_index, std
 	  candidate_set.insert(seq_iter->first);
   candidate_seqs = std::vector<std::string>(candidate_set.begin(), candidate_set.end());
 
-  if (candidate_seqs.size() != 0){
-    logger << "Identified " << candidate_seqs.size() << " additional candidate alleles from stutter artifacts" << "\n";
-    for (unsigned int i = 0; i < candidate_seqs.size(); i++)
-      logger << "\t" << candidate_seqs[i] << "\n";
-  }
+	if (candidate_seqs.size() != 0){
+		logger << "Identified " << candidate_seqs.size() << " additional candidate alleles from stutter artifacts" << "\n";
+		for (unsigned int i = 0; i < candidate_seqs.size(); i++)
+			logger << "\t" << candidate_seqs[i] << "\n";
+	}
+}
+
+int SeqStutterGenotyper::get_phase_bucket(unsigned int read_index) const {
+	assert(read_index < num_reads_);
+	if (!use_hp_tags_)
+		return 0;
+	if (std::fabs(log_p1_[read_index] - log_p2_[read_index]) <= TOLERANCE)
+		return 0;
+	return (log_p1_[read_index] > log_p2_[read_index] ? 1 : 2);
 }
 
 double SeqStutterGenotyper::compute_allele_bias(int hap_a_read_count, int hap_b_read_count){
@@ -933,7 +942,8 @@ void SeqStutterGenotyper::write_vcf_record(const std::vector<std::string>& sampl
 	std::vector<int> num_reads_strand_one(num_samples_, 0), num_reads_strand_two(num_samples_, 0);
 	std::vector<int> unique_reads_hap_one(num_samples_, 0), unique_reads_hap_two(num_samples_, 0);
 	std::vector<int> rv_unique_reads_hap_one(num_samples_, 0), rv_unique_reads_hap_two(num_samples_, 0);
-	std::vector< std::vector<int> > bps_per_sample(num_samples_), ml_bps_per_sample(num_samples_);
+		std::vector< std::vector<int> > bps_per_sample(num_samples_), ml_bps_per_sample(num_samples_);
+		std::vector< std::vector<int> > hp1_bps_per_sample(num_samples_), hp2_bps_per_sample(num_samples_), hp0_bps_per_sample(num_samples_);
 	std::vector< std::vector<double> > log_read_phases(num_samples_);
 	std::vector<AlnList> max_LL_alns_strand_one(num_samples_), left_alns_strand_one(num_samples_);
 	std::vector<AlnList> max_LL_alns_strand_two(num_samples_), left_alns_strand_two(num_samples_);
@@ -1013,14 +1023,34 @@ void SeqStutterGenotyper::write_vcf_record(const std::vector<std::string>& sampl
 		}
 		// Extract the bp difference observed in read from left-alignment
 
-		if (alns_[read_index].get_deleted()){
-		    bps_per_sample[sample_label_[read_index]].push_back(-(int)alleles[0].size());
-		}
-		else{
-		got_size = ExtractCigar(alns_[read_index].get_cigar_list(), alns_[read_index].get_start(), region.start()-5, region.stop()+5, bp_diff); //TODO padding size
-		if (got_size)
-		bps_per_sample[sample_label_[read_index]].push_back(bp_diff);
-		}
+			if (alns_[read_index].get_deleted()){
+			    int deleted_bp = -(int)alleles[0].size();
+			    bps_per_sample[sample_label_[read_index]].push_back(deleted_bp);
+			    if (OUTPUT_PHASED_ALLREADS == 1){
+				    int phase_bucket = get_phase_bucket(read_index);
+				    if (phase_bucket == 1)
+					    hp1_bps_per_sample[sample_label_[read_index]].push_back(deleted_bp);
+				    else if (phase_bucket == 2)
+					    hp2_bps_per_sample[sample_label_[read_index]].push_back(deleted_bp);
+				    else
+					    hp0_bps_per_sample[sample_label_[read_index]].push_back(deleted_bp);
+			    }
+			}
+			else{
+			got_size = ExtractCigar(alns_[read_index].get_cigar_list(), alns_[read_index].get_start(), region.start()-5, region.stop()+5, bp_diff); //TODO padding size
+			if (got_size){
+				bps_per_sample[sample_label_[read_index]].push_back(bp_diff);
+				if (OUTPUT_PHASED_ALLREADS == 1){
+					int phase_bucket = get_phase_bucket(read_index);
+					if (phase_bucket == 1)
+						hp1_bps_per_sample[sample_label_[read_index]].push_back(bp_diff);
+					else if (phase_bucket == 2)
+						hp2_bps_per_sample[sample_label_[read_index]].push_back(bp_diff);
+					else
+						hp0_bps_per_sample[sample_label_[read_index]].push_back(bp_diff);
+				}
+			}
+			}
 
 		// Extract the ML bp difference observed in read based on the ML genotype,
 		// but only for reads that span the original repeat region by 5 bp
@@ -1180,6 +1210,7 @@ void SeqStutterGenotyper::write_vcf_record(const std::vector<std::string>& sampl
 	if (output_allele_bias)    out << ":AB:DAB";
 	if (output_strand_bias)    out << ":FS";
 	if (OUTPUT_ALLREADS == 1)  out << ":ALLREADS";
+	if (OUTPUT_PHASED_ALLREADS == 1) out << ":ALLREADS_HP1:ALLREADS_HP2:ALLREADS_HP0";
 	if (OUTPUT_MALLREADS == 1) out << ":MALLREADS";
 	if (OUTPUT_GLS == 1)       out << ":GL";
 	if (OUTPUT_PLS == 1)       out << ":PL";
@@ -1191,7 +1222,7 @@ void SeqStutterGenotyper::write_vcf_record(const std::vector<std::string>& sampl
 	// Build the missing genotype string
 	// Exclude OUTPUT_FILTERS, as we won't use that to build the missing genotype string
 	num_fields += ((output_allele_bias ? 2 : 0) + (output_strand_bias ? 1 : 0)) + (!haploid_ && (OUTPUT_PHASED_GLS == 1) ? 1 : 0);
-	num_fields += (OUTPUT_ALLREADS + OUTPUT_MALLREADS + OUTPUT_GLS + OUTPUT_PLS + 2*OUTPUT_HAPLOTYPE_DATA);
+	num_fields += (OUTPUT_ALLREADS + OUTPUT_MALLREADS + OUTPUT_GLS + OUTPUT_PLS + OUTPUT_PHASED_ALLREADS*3 + 2*OUTPUT_HAPLOTYPE_DATA);
 	std::stringstream empty_gt;
 	for (int n = 0; n < num_fields; n++)
 		empty_gt << ".:";
@@ -1304,6 +1335,12 @@ void SeqStutterGenotyper::write_vcf_record(const std::vector<std::string>& sampl
 		if (OUTPUT_ALLREADS == 1)
 			out << ":" << condense_read_counts(bps_per_sample[sample_index]);
 
+		// Add bp diffs from regular left-alignment split by HP tag / phase bucket.
+		if (OUTPUT_PHASED_ALLREADS == 1)
+			out << ":" << condense_read_counts(hp1_bps_per_sample[sample_index])
+			    << ":" << condense_read_counts(hp2_bps_per_sample[sample_index])
+			    << ":" << condense_read_counts(hp0_bps_per_sample[sample_index]);
+
 		// Maximum likelihood base pair differences in each read from alignment probabilites
 		if (OUTPUT_MALLREADS == 1)
 			out << ":" << condense_read_counts(ml_bps_per_sample[sample_index]);
@@ -1400,5 +1437,4 @@ void SeqStutterGenotyper::write_vcf_record(const std::vector<std::string>& sampl
 //		visualizeAlignments(max_LL_alns, sample_names_, sample_results, hap_blocks_, chrom_seq, locus_info.str(), true, html_output);
 //	}
 }
-
 
