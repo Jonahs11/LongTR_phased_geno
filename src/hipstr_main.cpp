@@ -70,6 +70,7 @@ void print_usage(int def_mdist, int def_min_reads, int def_max_reads, int def_ma
 	    << "\t" << "--output-gls                          "  << "\t" << "Write genotype likelihoods to the VCF (Default = False)"                             << "\n"
 	    << "\t" << "--output-pls                          "  << "\t" << "Write phred-scaled genotype likelihoods to the VCF (Default = False)"                << "\n"
 	    << "\t" << "--output-phased-gls                   "  << "\t" << "Write phased genotype likelihoods to the VCF (Default = False)"                      << "\n"
+	    << "\t" << "--output-phased-allreads             "  << "\t" << "Write ALLREADS split by HP tag (HP1/HP2/HP0) to the VCF (Default = False)"          << "\n"
 	    << "\t" << "--output-filters                      "  << "\t" << "Write why individual calls were filtered to the VCF (Default = False)"               << "\n" << "\n"
 
 	    << "Optional BAM/CRAM tweaking parameters:" << "\n"
@@ -180,6 +181,7 @@ void parse_command_line_args(int argc, char** argv,
     {"output-gls",         no_argument, &(Genotyper::OUTPUT_GLS),           1},
     {"output-pls",         no_argument, &(Genotyper::OUTPUT_PLS),           1},
     {"output-phased-gls",  no_argument, &(Genotyper::OUTPUT_PHASED_GLS),    1},
+    {"output-phased-allreads",  no_argument, &(Genotyper::OUTPUT_PHASED_ALLREADS), 1},
     {"output-filters",     no_argument, &(Genotyper::OUTPUT_FILTERS),       1},
     {"no-rmdup",           no_argument, &(bam_processor.REMOVE_PCR_DUPS),      0},
     {"use-unpaired",       no_argument, &(bam_processor.REQUIRE_PAIRED_READS), 0},

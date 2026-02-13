@@ -315,6 +315,16 @@ std::string Genotyper::get_vcf_header(const std::string& fasta_path, const std::
   if (OUTPUT_MALLREADS == 1)
     out << "##FORMAT=<ID=" << "MALLREADS" << ",Number=1,Type=String,Description=\""
 	<< "Maximum likelihood bp diff in each read based on haplotype alignments for reads that span the repeat region by at least 5 base pairs" << "\">" << "\n";
+  if (OUTPUT_PHASED_ALLREADS == 1)
+    out << "##FORMAT=<ID=" << "ALLREADS_HP1" << ",Number=1,Type=String,Description=\""
+	<< "Base pair difference observed in each read's Needleman-Wunsch alignment for reads with HP tag value 1\""
+	<< ">" << "\n"
+	<< "##FORMAT=<ID=" << "ALLREADS_HP2" << ",Number=1,Type=String,Description=\""
+	<< "Base pair difference observed in each read's Needleman-Wunsch alignment for reads with HP tag value 2\""
+	<< ">" << "\n"
+	<< "##FORMAT=<ID=" << "ALLREADS_HP0" << ",Number=1,Type=String,Description=\""
+	<< "Base pair difference observed in each read's Needleman-Wunsch alignment for reads without an HP tag (or with ambiguous HP state)\""
+	<< ">" << "\n";
   if (OUTPUT_GLS == 1)
     out << "##FORMAT=<ID=" << "GL" << ",Number=G,Type=Float,Description=\"" << "log10 genotype likelihoods" << "\">" << "\n";
   if (OUTPUT_PLS == 1)
@@ -341,6 +351,7 @@ int Genotyper::OUTPUT_PLS             = 0;
 int Genotyper::OUTPUT_PHASED_GLS      = 0;
 int Genotyper::OUTPUT_ALLREADS        = 1;
 int Genotyper::OUTPUT_MALLREADS       = 1;
+int Genotyper::OUTPUT_PHASED_ALLREADS = 0;
 int Genotyper::OUTPUT_FILTERS         = 0;
 int Genotyper::OUTPUT_HAPLOTYPE_DATA  = 0;
 float Genotyper::MAX_FLANK_INDEL_FRAC = 0.15;
